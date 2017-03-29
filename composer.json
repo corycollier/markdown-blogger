@@ -1,0 +1,14 @@
+{
+    "name": "corycollier/markdown-blogger",
+    "description": "Create a blog, only run by markdown pages",
+    "type": "project",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Cory Collier",
+            "email": "corycollier@corycollier.com"
+        }
+    ],
+    "minimum-stability": "dev",
+    "require": {}
+}
