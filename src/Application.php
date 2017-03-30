@@ -136,6 +136,7 @@ class Application
             'description' => $blog->getDescription(),
             'latest'      => $factory->massFactory($latest),
             'blog_title'  => $this->get('blog_title'),
+            'time'        => $blog->getTime(),
         ];
 
         include __DIR__ . '/../web/layout.php';

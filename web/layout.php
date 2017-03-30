@@ -22,6 +22,6 @@ extract($vars);
                 endforeach;
             endif;
         ?>
-        
+
     </body>
 </html>

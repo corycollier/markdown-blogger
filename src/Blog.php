@@ -26,8 +26,8 @@ class Blog
     protected function setData($data = [])
     {
         $defaults = [
-            'content' => '',
-            'data'    => null,
+            'content'  => '',
+            'data'     => null,
         ];
 
         $this->data = array_merge($defaults, $data);
@@ -60,7 +60,10 @@ class Blog
     public function getCreationTime()
     {
         $data = $this->getData();
-        return $data['data']->getCTime();
+
+        if ($data['data'] instanceof \SplFileInfo) {
+            return $data['data']->getCTime();
+        }
     }
 
     /**
@@ -106,16 +109,26 @@ class Blog
         ]);
     }
 
+    public function getTime()
+    {
+        return date('F j, Y', $this->getCreationTime());
+    }
+
     public function getSnippet($length = 50)
     {
-        $template = PHP_EOL. '<h2><a href="%s">%s</a></h2>' . PHP_EOL . '<p>%s</p>' . PHP_EOL;
+        $template = PHP_EOL . '<h2><a href="%s">%s</a></h2>'
+            . PHP_EOL . '<small>%s</small>'
+            . PHP_EOL . '<p>%s</p>'
+            . PHP_EOL;
+
         $title    = $this->getTitle();
         $link     = $this->getLink();
+        $time     = $this->getTime();
         $text     = strip_tags($this->getCrawler()->html());
         $words    = str_word_count($text, 1);
         $content  = implode(' ', array_slice($words, 0, $length));
 
-        echo sprintf($template, $link, $title, $content);
+        echo sprintf($template, $link, $title, $time, $content);
     }
 
     /**

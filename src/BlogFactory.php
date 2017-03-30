@@ -36,6 +36,7 @@ class BlogFactory
         return new Blog([
             'content' => $parser->text($content),
             'data'    => $file,
+            'filename' => $filename,
         ]);
     }
 
