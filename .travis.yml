@@ -8,4 +8,4 @@ php:
 
 before_script: compser install
 
-script: ./vendor/bin/phpunit -c build/phpunit.xml 
+script: ./vendor/bin/phpunit -c build/phpunit.xml
