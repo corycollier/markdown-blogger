@@ -1,1 +1,8 @@
+# Composer files
 vendor/
+build/*
+!build/phpunit.xml
+
+# Blogs
+data/*
+!data/.empty # keep the folder though ;)
