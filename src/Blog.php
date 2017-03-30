@@ -9,17 +9,30 @@ class Blog
     protected $data;
     protected $crawler;
 
-    public function __construct($data)
+    /**
+     * constructor
+     * @param Array $data The data to use for populating the blog instance.
+     */
+    public function __construct($data = [])
+    {
+        $this->setData($data);
+        $this->crawler = new Crawler($data['content']);
+    }
+
+    /**
+     * Setter for the data property
+     * @param Array $data the array of data for the blog Instance.
+     */
+    protected function setData($data = [])
     {
         $defaults = [
             'content' => '',
             'data'    => null,
         ];
 
-        $data = array_merge($defaults, $data);
+        $this->data = array_merge($defaults, $data);
 
-        $this->data = $data;
-        $this->crawler = new Crawler($data['content']);
+        return $this;
     }
 
     /**
@@ -57,7 +70,11 @@ class Blog
     public function getTitle()
     {
         $crawler = $this->getCrawler();
-        return $crawler->filter('h1')->html();
+
+        $result = $crawler->filter('h1');
+        if ($result->count()) {
+            return $result->html();
+        }
     }
 
     /**
@@ -77,6 +94,28 @@ class Blog
     {
         $data = $this->getData();
         return $data['content'];
+    }
+
+    public function getLink()
+    {
+        $data = $this->getData();
+        $filename = $data['data']->getFilename();
+        return strtr($filename, [
+            '.md' => '',
+            '_' => '/',
+        ]);
+    }
+
+    public function getSnippet($length = 50)
+    {
+        $template = PHP_EOL. '<h2><a href="%s">%s</a></h2>' . PHP_EOL . '<p>%s</p>' . PHP_EOL;
+        $title    = $this->getTitle();
+        $link     = $this->getLink();
+        $text     = strip_tags($this->getCrawler()->html());
+        $words    = str_word_count($text, 1);
+        $content  = implode(' ', array_slice($words, 0, $length));
+
+        echo sprintf($template, $link, $title, $content);
     }
 
     /**
@@ -100,6 +139,7 @@ class Blog
         }
 
         arsort($results);
-        return array_slice(array_keys($results), 0, 20);
+        $results = array_slice(array_keys($results), 0, 20);
+        return implode(', ', $results);
     }
 }

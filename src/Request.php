@@ -21,7 +21,7 @@ class Request
         return $data[$key];
     }
 
-    protected function getData()
+    public function getData()
     {
         return $this->data;
     }
