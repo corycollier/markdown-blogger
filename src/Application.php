@@ -4,14 +4,13 @@ namespace MarkdownBlogger;
 
 class Application
 {
-    /**
-     * Holds the instance of self
-     */
-    protected static $instance;
+    const ERR_INVALID_CONFIG_KEY = 'The config key requested [%s] does not exist';
 
+    protected static $instance;
     protected $iterator;
     protected $request;
     protected $factory;
+    protected $config;
 
     /**
      * Privatizing the constructor, to enforce the singleton pattern
@@ -61,14 +60,53 @@ class Application
     }
 
     /**
+     * Setter for the config property.
+     * @param Array $config The configuration Array.
+     * @return Application Returns self, for object-chaining.
+     */
+    protected function setConfig($config = [])
+    {
+        $defaults = [
+            'data_dir' => '',
+        ];
+
+        $this->config = array_merge($defaults, $config);
+        return $this;
+    }
+
+    /**
+     * Getter for the config property
+     * @return array
+     */
+    public function getConfig()
+    {
+        return $this->config;
+    }
+
+    /**
+     * Gets a config value by key
+     * @param  string $key The key to get.
+     * @return mixed Could be anything.
+     */
+    public function get($key)
+    {
+        $config = $this->getConfig();
+        if (! array_key_exists($key, $config)) {
+            throw new \OutOfRangeException(sprintf(self::ERR_INVALID_CONFIG_KEY, $key));
+        }
+        return $config[$key];
+    }
+
+    /**
      * Gets all of the things ready.
      * @param  array $config Configuration parameters.
      * @return Application Return self, for object-chaining
      */
     public function bootstrap($config = [])
     {
-        $this->iterator = new BlogIterator(__DIR__ . '/../data');
-        $this->request  = new Request(array_merge($_SERVER, $_GET));
+        $config         = $this->setConfig($config)->getConfig();
+        $this->request  = $this->getNewRequest(array_merge($_SERVER, $_GET));
+        $this->iterator = new BlogIterator(realpath($config['data_dir']));
         $this->factory  = new BlogFactory;
 
         return $this;
@@ -82,11 +120,13 @@ class Application
     {
         $request = $this->getRequest();
         $factory = $this->getFactory();
+        $iterator = $this->getIterator();
+        $latest = $iterator->getLatest();
         try {
-            $blog = $factory->factory($request);
+            $blog = $factory->factory($request->getData());
         } catch (\InvalidArgumentException $exception) {
-            $request = $this->get404Request();
-            $blog = $factory->factory($request);
+            $request = $this->getNewRequest(['q' => '404']);
+            $blog = $factory->factory($request->getData());
         }
 
         $vars = [
@@ -94,6 +134,9 @@ class Application
             'title'       => $blog->getTitle(),
             'keywords'    => $blog->getKeywords(),
             'description' => $blog->getDescription(),
+            'latest'      => $factory->massFactory($latest),
+            'blog_title'  => $this->get('blog_title'),
+            'time'        => $blog->getTime(),
         ];
 
         include __DIR__ . '/../web/layout.php';
@@ -102,13 +145,13 @@ class Application
     }
 
     /**
-     * Utility method to get a reuest object referencing a 404 page.
-     * @return Request
+     * Gets a new request object with provided data
+     * @param  [type] $data [description]
+     * @return [type]       [description]
      */
-    protected function get404Request()
+    protected function getNewRequest($data = [])
     {
-        return new Request([
-            'q' => '404'
-        ]);
+        $data = array_merge(['data_dir' => $this->get('data_dir')], $data);
+        return new Request($data);
     }
 }

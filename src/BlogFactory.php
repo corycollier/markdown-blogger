@@ -8,35 +8,66 @@ class BlogFactory
 
     protected $parser;
 
+    /**
+     * Constructor.
+     */
     public function __construct()
     {
         $this->parser = new \Parsedown;
     }
 
-    public function factory(Request $request)
+    /**
+     * Main public entry point. Returns a Blog value for the given array.
+     * @param  array $data An array of data.
+     * @return Blog The subsequent blog instance.
+     */
+    public function factory($data)
     {
+        $content  = '';
+        $file     = '';
         $parser   = $this->getParser();
-        $name     = $this->getBlogName($request);
-        $filename = $this->getFilename($name);
-        $content  = $this->getFileContent($filename);
-        $data     = new \SplFileInfo($filename);
+        $filename = $this->getFilename($data);
+
+        if ($filename) {
+            $content  = $this->getFileContent($filename);
+            $file     = new \SplFileInfo($filename);
+        }
 
         return new Blog([
             'content' => $parser->text($content),
-            'data'    => $data,
+            'data'    => $file,
+            'filename' => $filename,
         ]);
     }
 
+    /**
+     * Factory for multiple items
+     * @param  array $data An array of items
+     * @return array An array of Blogs
+     */
+    public function massFactory($data)
+    {
+        $results = [];
+        foreach ($data as $post) {
+            $results[] = $this->factory($post);
+        }
+        return $results;
+    }
+
+    /**
+     * Getter for the parser property
+     * @return Parsedown The parsedown instance.
+     */
     protected function getParser()
     {
         return $this->parser;
     }
 
-    protected function getFilename($name)
-    {
-        return __DIR__ . '/../data/' . $name . '.md';
-    }
-
+    /**
+     * Utility method to wrap the file_get_contents PHP function.
+     * @param  string $filename The path to get content from.
+     * @return string The contents of the file.
+     */
     protected function getFileContent($filename)
     {
         if (!file_exists($filename)) {
@@ -45,29 +76,46 @@ class BlogFactory
         return file_get_contents($filename);
     }
 
-    public function getBlogName(Request $request)
+    /**
+     * Translates a request value, to a blog file name
+     * @param  string $name The url value given
+     * @return string the file name
+     */
+    protected function translateName($name)
     {
-        $options = [
-            'q', 'query_string', 'path_info', 'php_self',
-        ];
-
-        foreach ($options as $option) {
-            try  {
-                $name = $request->get($option);
-                return $this->translateName($name);
-            } catch (\OutOfRangeException $exception) {
-                continue;
-            }
+        if ($name === '/index.php') {
+            return '';
         }
-    }
 
-    public function translateName($name)
-    {
         $name = ltrim($name, '/');
         $name = rtrim($name, '/');
 
         return preg_replace('/[^A-Za-z0-9\-_]/', '', strtr($name, [
             '/' => '_',
+            '.md' => '',
         ]));
+    }
+
+    /**
+     * Gets a filename from the given request url.
+     * @param  array $data The array of parameters.
+     * @return string The corresponding filepath value.
+     */
+    protected function getFilename($data)
+    {
+        $options = [
+            'q', 'query_string', 'path_info', 'php_self',
+        ];
+        $root = $data['data_dir'];
+
+        foreach ($options as $option) {
+            if (!array_key_exists($option, $data)) {
+                continue;
+            }
+            $name = $this->translateName($data[$option]);
+            if ($name) {
+                return $root . '/' . $name . '.md';
+            }
+        }
     }
 }
